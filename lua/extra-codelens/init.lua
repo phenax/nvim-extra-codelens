@@ -19,22 +19,31 @@ end
 local namespace = vim.api.nvim_create_namespace("extra-codelens")
 
 local declaration_query = vim.treesitter.parse_query("typescript", [[
-  (function_declaration name:(identifier) @declaration_name)
-  (variable_declarator name:(identifier) @declaration_name)
-  (type_alias_declaration name:(type_identifier) @declaration_name)
+  (program (function_declaration name:(identifier) @declaration_name))
+  (program (lexical_declaration (variable_declarator name:(identifier) @declaration_name)))
+  (program (type_alias_declaration name:(type_identifier) @declaration_name))
+
+  (export_statement declaration:(function_declaration name:(identifier) @declaration_name))
+  (export_statement declaration:(lexical_declaration (variable_declarator name:(identifier) @declaration_name)))
+  (export_statement declaration:(type_alias_declaration name:(type_identifier) @declaration_name))
 ]])
 
-function M.on_attach(client, _bufnr)
-  -- if client == nil then return end
-  -- if not client.supports_method('textDocument/hover') then
-  --   local err = string.format(
-  --     "nvim-extra-codelens: %s does not support \"textDocument/hover\" command",
-  --     client.name)
-  --   vim.api.nvim_command(string.format("echohl WarningMsg | echo '%s' | echohl None", err))
-  --   return
-  -- end
+function M.on_attach(client, bufnr)
+  if client == nil then return end
 
-  local bufnr = vim.api.nvim_get_current_buf()
+  if not client.supports_method('textDocument/hover') then
+    local err = string.format(
+      "nvim-extra-codelens: %s does not support \"textDocument/hover\" command",
+      client.name)
+    vim.api.nvim_command(string.format("echohl WarningMsg | echo '%s' | echohl None", err))
+    return
+  end
+
+  M.run_on_buffer(bufnr)
+end
+
+function M.run_on_buffer(bufnr)
+  bufnr = bufnr or vim.api.nvim_get_current_buf()
 
   M.annotate_nodes(bufnr)
   vim.api.nvim_create_autocmd({"BufEnter", "BufWrite", "InsertLeave"}, {
@@ -63,6 +72,7 @@ function M.show_codelens_for_node(bufnr, node)
   local params = vim.lsp.util.make_position_params()
   params.position = { line = row, character = col }
 
+  -- TODO: Use buf_request_all
   vim.lsp.buf_request(bufnr, "textDocument/hover", params, function(err, result)
     if err ~= nil then return end
 
