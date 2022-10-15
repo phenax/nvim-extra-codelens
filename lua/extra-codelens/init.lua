@@ -2,14 +2,12 @@ local utils = require('extra-codelens.utils')
 
 local M = {}
 
-local function extract_codeinfo(resp)
-  local contents = vim.tbl_map(function(r)
-    return vim.tbl_map(function(v) return v.value end,
-      vim.tbl_filter(function(v) return type(v) == "table" end,
-        r.result.contents
-      )
+local function extract_codeinfo(result)
+  local contents = vim.tbl_map(function(v) return v.value end,
+    vim.tbl_filter(function(v) return type(v) == "table" end,
+      result.contents
     )
-  end, resp)
+  )
 
   -- TODO: Handle when contents is just single value
   -- TODO: Handle string content
@@ -44,9 +42,8 @@ function M.on_attach(client, _)
 end
 
 function M.annotate_nodes()
-  local bufnr = vim.api.nvim_get_current_buf()
-
   vim.schedule(function()
+    local bufnr = vim.api.nvim_get_current_buf()
     local root = utils.get_root_node(bufnr)
 
     vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
@@ -65,13 +62,15 @@ function M.show_codelens_for_node(bufnr, node)
   local params = vim.lsp.util.make_position_params()
   params.position = { line = row, character = col }
 
-  local response = vim.lsp.buf_request_sync(bufnr, "textDocument/hover", params)
+  vim.lsp.buf_request(bufnr, "textDocument/hover", params, function(err, result)
+    if err ~= nil then return end
 
-  local codeinfo = extract_codeinfo(response)
+    local codeinfo = extract_codeinfo(result)
 
-  vim.api.nvim_buf_set_extmark(bufnr, namespace, row, col, {
-    virt_text = { { ":: " .. codeinfo, "DiagnosticHint" } },
-  })
+    vim.api.nvim_buf_set_extmark(bufnr, namespace, row, col, {
+      virt_text = { { ":: " .. codeinfo, "DiagnosticHint" } },
+    })
+  end)
 end
 
 return M
