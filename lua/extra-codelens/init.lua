@@ -22,13 +22,29 @@ local function extract_codeinfo(resp)
   return table.concat(vim.tbl_flatten(contents), ', ')
 end
 
+local declaration_query = vim.treesitter.parse_query("typescript", [[
+  (function_declaration name:(identifier) @declaration_name)
+  (variable_declarator name:(identifier) @declaration_name)
+  (type_alias_declaration name:(type_identifier) @declaration_name)
+]])
+
 local namespace = vim.api.nvim_create_namespace("extra-codelens")
 
 function M.setup()
   local bufnr = vim.api.nvim_get_current_buf()
-  local node = get_node()
 
-  M.show_codelens_for_node(bufnr, node)
+  vim.defer_fn(function()
+    local parser = vim.treesitter.get_parser(bufnr, "typescript")
+    local root = parser:parse()[1]:root()
+
+    for id, node in declaration_query:iter_captures(root, bufnr, 0, -1) do
+      local tag = declaration_query.captures[id]
+      if tag == "declaration_name" then
+        print(vim.treesitter.get_node_text(node, bufnr))
+        M.show_codelens_for_node(bufnr, node)
+      end
+    end
+  end, 0)
 end
 
 function M.show_codelens_for_node(bufnr, node)
