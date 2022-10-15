@@ -3,6 +3,7 @@ local utils = require('extra-codelens.utils')
 local M = {}
 
 local function extract_codeinfo(result)
+  -- TODO: Try for instead
   local contents = vim.tbl_map(function(v) return v.value end,
     vim.tbl_filter(function(v) return type(v) == "table" end,
       result.contents
@@ -23,7 +24,7 @@ local declaration_query = vim.treesitter.parse_query("typescript", [[
   (type_alias_declaration name:(type_identifier) @declaration_name)
 ]])
 
-function M.on_attach(client, _)
+function M.on_attach(client, _bufnr)
   -- if client == nil then return end
   -- if not client.supports_method('textDocument/hover') then
   --   local err = string.format(
@@ -33,17 +34,17 @@ function M.on_attach(client, _)
   --   return
   -- end
 
-  M.annotate_nodes()
+  local bufnr = vim.api.nvim_get_current_buf()
 
-  vim.api.nvim_create_autocmd({"BufEnter", "BufWinEnter", "BufWrite", "InsertLeave"}, {
-    pattern = { "*.ts" },
-    callback = M.annotate_nodes,
+  M.annotate_nodes(bufnr)
+  vim.api.nvim_create_autocmd({"BufEnter", "BufWrite", "InsertLeave"}, {
+    buffer = bufnr,
+    callback = function() M.annotate_nodes(bufnr) end,
   })
 end
 
-function M.annotate_nodes()
+function M.annotate_nodes(bufnr)
   vim.schedule(function()
-    local bufnr = vim.api.nvim_get_current_buf()
     local root = utils.get_root_node(bufnr)
 
     vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
