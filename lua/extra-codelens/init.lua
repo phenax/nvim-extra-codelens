@@ -1,11 +1,11 @@
 local M = {}
 
-local function get_node()
-  local bufnr = vim.api.nvim_get_current_buf()
-  local line, col = unpack(vim.api.nvim_win_get_cursor(0))
-  local node = vim.treesitter.get_node_at_pos(bufnr, line - 1, col)
-  return node
-end
+-- local function get_node()
+--   local bufnr = vim.api.nvim_get_current_buf()
+--   local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+--   local node = vim.treesitter.get_node_at_pos(bufnr, line - 1, col)
+--   return node
+-- end
 
 local function extract_codeinfo(resp)
   local contents = vim.tbl_map(function(r)
@@ -22,25 +22,26 @@ local function extract_codeinfo(resp)
   return table.concat(vim.tbl_flatten(contents), ', ')
 end
 
-local declaration_query = vim.treesitter.parse_query("typescript", [[
-  (function_declaration name:(identifier) @declaration_name)
-  (variable_declarator name:(identifier) @declaration_name)
-  (type_alias_declaration name:(type_identifier) @declaration_name)
-]])
-
 local namespace = vim.api.nvim_create_namespace("extra-codelens")
 
 function M.setup()
   local bufnr = vim.api.nvim_get_current_buf()
 
+  local declaration_query = vim.treesitter.parse_query("typescript", [[
+    (function_declaration name:(identifier) @declaration_name)
+    (variable_declarator name:(identifier) @declaration_name)
+    (type_alias_declaration name:(type_identifier) @declaration_name)
+  ]])
+
   vim.defer_fn(function()
     local parser = vim.treesitter.get_parser(bufnr, "typescript")
     local root = parser:parse()[1]:root()
+  
+    vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
 
     for id, node in declaration_query:iter_captures(root, bufnr, 0, -1) do
       local tag = declaration_query.captures[id]
       if tag == "declaration_name" then
-        print(vim.treesitter.get_node_text(node, bufnr))
         M.show_codelens_for_node(bufnr, node)
       end
     end
@@ -57,34 +58,9 @@ function M.show_codelens_for_node(bufnr, node)
 
   local codeinfo = extract_codeinfo(response)
 
-  vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
   vim.api.nvim_buf_set_extmark(bufnr, namespace, row, col, {
     virt_text = { { ":: " .. codeinfo, "DiagnosticHint" } },
   })
 end
 
-
--- local x =  {
---     result = {
---       contents = {
---         {
---           language = "typescript",
---           value = "const debounceAsync: <T, Args extends any[]>(funcToExec: (...args: Args) => Promise<T>, wait: number) => (...args: Args) => Promise<T>"
---         },
---         "debounce for async function.\n\nThe debounced function returns a Promise that resolves only upo n the next\ninvocation of the `funcToExec` argument.\n\n*@param* `funcToExec` — async function to exec  \n\n*@param* `wait` — waiting time, in ms"
---       },
---       range = {
---         ["end"] = {
---           character = 26,
---           line = 9
---         },
---         start = {
---           character = 13,
---           line = 9
---         }
---       }
---     }
---   }
--- }
---
 return M
