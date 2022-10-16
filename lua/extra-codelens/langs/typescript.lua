@@ -22,7 +22,14 @@ function Lang.extract_codeinfo(result)
     end
   end
 
-  return contents
+  -- Trim extra whitespaces
+  contents = string.gsub(contents, '%s+', ' ')
+
+  -- Transform type
+  contents = string.gsub(contents, '^%s*const [A-Za-z0-9$_-]+:%s*', '')
+  contents = string.gsub(contents, '^%s*function %w+%s*', 'function ')
+
+  return ": " .. contents
 end
 
 return Lang

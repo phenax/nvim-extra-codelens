@@ -8,6 +8,8 @@ local namespace = vim.api.nvim_create_namespace("extra-codelens")
 function M.on_attach(client, bufnr)
   if client == nil then return end
 
+  -- TODO: If supports textDocument/codelens, fallback to virtualtypes
+
   if not client.supports_method('textDocument/hover') then
     local err = string.format(
       "nvim-extra-codelens: %s does not support \"textDocument/hover\" command",
@@ -61,10 +63,8 @@ function M._show_codelens_for_node(bufnr, node, lang)
   vim.lsp.buf_request(bufnr, "textDocument/hover", params, function(err, result)
     if err ~= nil then return end
 
-    local codeinfo = lang.extract_codeinfo(result)
-
     vim.api.nvim_buf_set_extmark(bufnr, namespace, row, col, {
-      virt_text = { { ":: " .. codeinfo, "DiagnosticHint" } },
+      virt_text = { { lang.extract_codeinfo(result), "DiagnosticHint" } },
     })
   end)
 end
