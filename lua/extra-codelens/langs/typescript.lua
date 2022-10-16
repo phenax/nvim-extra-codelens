@@ -1,4 +1,3 @@
-
 local Lang = {}
 
 Lang.declaration_query = vim.treesitter.parse_query("typescript", [[
@@ -12,17 +11,18 @@ Lang.declaration_query = vim.treesitter.parse_query("typescript", [[
 ]])
 
 function Lang.extract_codeinfo(result)
-  -- TODO: Try for instead
-  local contents = vim.tbl_map(function(v) return v.value end,
-    vim.tbl_filter(function(v) return type(v) == "table" end,
-      result.contents
-    )
-  )
+  local contents = ""
+  for _,v in pairs(result.contents) do
+    if type(v) == "table" then
+      if contents == "" then
+        contents = v.value
+      else
+        contents = contents .. ', ' .. v.value
+      end
+    end
+  end
 
-  -- TODO: Handle when contents is just single value
-  -- TODO: Handle string content
-
-  return table.concat(vim.tbl_flatten(contents), ', ')
+  return contents
 end
 
 return Lang
