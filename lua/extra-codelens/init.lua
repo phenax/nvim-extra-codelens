@@ -46,6 +46,7 @@ function M._annotate_nodes(bufnr)
     end
 
     for id, node in lang.declaration_query:iter_captures(root, bufnr, 0, -1) do
+      -- Cant get lua query to rpovide captures
       if lang.declaration_query.captures[id] == "declaration_name" then
         M._show_codelens_for_node(bufnr, node, lang)
       end
