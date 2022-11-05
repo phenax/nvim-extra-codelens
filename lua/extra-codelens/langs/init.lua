@@ -6,6 +6,7 @@ local typescript = function() return require('extra-codelens.langs.typescript') 
 local langs = {
   typescript = typescript,
   javascript = typescript,
+  lua = function() return require('extra-codelens.langs.lua') end,
 }
 
 function M.get_lang(ft)

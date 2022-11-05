@@ -5,6 +5,9 @@ local M = {}
 
 local namespace = vim.api.nvim_create_namespace("extra-codelens")
 
+--- Hello wordl
+---@param params cmp.SourceCompletionApiParams
+---@param callback fun(response: lsp.CompletionResponse|nil)
 function M.on_attach(client, bufnr)
   if client == nil then return end
 
@@ -33,8 +36,6 @@ end
 
 function M._annotate_nodes(bufnr)
   vim.schedule(function()
-    local root = utils.get_root_node(bufnr)
-
     vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
 
     local ft = vim.bo[bufnr].filetype
@@ -45,8 +46,8 @@ function M._annotate_nodes(bufnr)
       return
     end
 
+    local root = utils.get_root_node(bufnr, ft)
     for id, node in lang.declaration_query:iter_captures(root, bufnr, 0, -1) do
-      -- Cant get lua query to rpovide captures
       if lang.declaration_query.captures[id] == "declaration_name" then
         M._show_codelens_for_node(bufnr, node, lang)
       end

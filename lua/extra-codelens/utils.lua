@@ -8,8 +8,8 @@ function utils.get_node_under_cursor()
   return node
 end
 
-function utils.get_root_node(bufnr)
-  local parser = vim.treesitter.get_parser(bufnr, "typescript")
+function utils.get_root_node(bufnr, ft)
+  local parser = vim.treesitter.get_parser(bufnr, ft)
   return parser:parse()[1]:root()
 end
 
