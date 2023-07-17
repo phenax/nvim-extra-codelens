@@ -1,6 +1,8 @@
+local utils = require('extra-codelens.utils')
+
 local Lang = {}
 
-Lang.declaration_query = vim.treesitter.parse_query(
+Lang.declaration_query = utils.parse_query(
   "typescript",
   [[
   (program (function_declaration name:(identifier) @declaration_name))

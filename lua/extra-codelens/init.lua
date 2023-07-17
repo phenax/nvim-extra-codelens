@@ -80,7 +80,7 @@ function M._show_codelens_for_node(bufnr, node, lang)
     end
 
     extmarks[position] = vim.api.nvim_buf_set_extmark(bufnr, namespace, row, col, {
-      virt_text = { { I(lang.extract_codeinfo(result)), "@comment" } },
+      virt_text = { { lang.extract_codeinfo(result), "@comment" } },
     })
   end)
 end

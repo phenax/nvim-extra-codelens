@@ -1,6 +1,8 @@
+local utils = require('extra-codelens.utils')
+
 local Lang = {}
 
-Lang.declaration_query = vim.treesitter.parse_query("lua", [[
+Lang.declaration_query = utils.parse_query("lua", [[
   (variable_declaration (assignment_statement (variable_list name:(identifier) @declaration_name)))
   (function_declaration name:(dot_index_expression field:(identifier) @declaration_name))
 ]])
