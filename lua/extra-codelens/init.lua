@@ -5,9 +5,6 @@ local M = {}
 
 local namespace = vim.api.nvim_create_namespace "extra-codelens"
 
---- Hello wordl
----@param params cmp.SourceCompletionApiParams
----@param callback fun(response: lsp.CompletionResponse|nil)
 function M.on_attach(client, bufnr)
   if client == nil then
     return
@@ -27,14 +24,19 @@ end
 function M.run_on_buffer(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
 
-  M._annotate_nodes(bufnr)
-  vim.api.nvim_create_autocmd({ "BufEnter", "BufWrite", "InsertLeave" }, {
-    buffer = bufnr,
-    callback = function()
-      M._annotate_nodes(bufnr)
-    end,
-  })
+  local ft = vim.bo[bufnr].filetype
+  local lang = langs.get_lang(ft)
+  if lang then
+    M._annotate_nodes(bufnr)
+    vim.api.nvim_create_autocmd({ "BufEnter", "BufWrite", "InsertLeave" }, {
+      buffer = bufnr,
+      callback = function()
+        M._annotate_nodes(bufnr)
+      end,
+    })
+  end
 end
+
 
 function M._annotate_nodes(bufnr)
   vim.schedule(function()
@@ -42,11 +44,6 @@ function M._annotate_nodes(bufnr)
 
     local ft = vim.bo[bufnr].filetype
     local lang = langs.get_lang(ft)
-
-    if lang == nil then
-      print("Filetype " .. ft .. " not supported")
-      return
-    end
 
     local root = utils.get_root_node(bufnr, ft)
     for id, node in lang.declaration_query:iter_captures(root, bufnr, 0, -1) do
