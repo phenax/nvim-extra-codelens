@@ -1,22 +1,22 @@
-local utils = require('extra-codelens.utils')
-local langs = require('extra-codelens.langs')
+local utils = require "extra-codelens.utils"
+local langs = require "extra-codelens.langs"
 
 local M = {}
 
-local namespace = vim.api.nvim_create_namespace("extra-codelens")
+local namespace = vim.api.nvim_create_namespace "extra-codelens"
 
 --- Hello wordl
 ---@param params cmp.SourceCompletionApiParams
 ---@param callback fun(response: lsp.CompletionResponse|nil)
 function M.on_attach(client, bufnr)
-  if client == nil then return end
+  if client == nil then
+    return
+  end
 
   -- TODO: If supports textDocument/codelens, fallback to virtualtypes
 
-  if not client.supports_method('textDocument/hover') then
-    local err = string.format(
-      "nvim-extra-codelens: %s does not support \"textDocument/hover\" command",
-      client.name)
+  if not client.supports_method "textDocument/hover" then
+    local err = string.format('nvim-extra-codelens: %s does not support "textDocument/hover" command', client.name)
     vim.api.nvim_command(string.format("echohl WarningMsg | echo '%s' | echohl None", err))
     return
   end
@@ -28,9 +28,11 @@ function M.run_on_buffer(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
 
   M._annotate_nodes(bufnr)
-  vim.api.nvim_create_autocmd({"BufEnter", "BufWrite", "InsertLeave"}, {
+  vim.api.nvim_create_autocmd({ "BufEnter", "BufWrite", "InsertLeave" }, {
     buffer = bufnr,
-    callback = function() M._annotate_nodes(bufnr) end,
+    callback = function()
+      M._annotate_nodes(bufnr)
+    end,
   })
 end
 
@@ -55,6 +57,8 @@ function M._annotate_nodes(bufnr)
   end)
 end
 
+local extmarks = {}
+
 function M._show_codelens_for_node(bufnr, node, lang)
   local row, col = node:range()
 
@@ -63,10 +67,20 @@ function M._show_codelens_for_node(bufnr, node, lang)
 
   -- TODO: Use buf_request_all
   vim.lsp.buf_request(bufnr, "textDocument/hover", params, function(err, result)
-    if err ~= nil then return end
+    if err ~= nil or result == nil then
+      return
+    end
 
-    vim.api.nvim_buf_set_extmark(bufnr, namespace, row, col, {
-      virt_text = { { lang.extract_codeinfo(result), "DiagnosticHint" } },
+    local position = string.format("%s%s", row, col)
+
+    local id = extmarks[position]
+
+    if id then
+      vim.api.nvim_buf_del_extmark(bufnr, namespace, id)
+    end
+
+    extmarks[position] = vim.api.nvim_buf_set_extmark(bufnr, namespace, row, col, {
+      virt_text = { { I(lang.extract_codeinfo(result)), "@comment" } },
     })
   end)
 end
